@@ -10,6 +10,7 @@ A modern SaaS starter kit built with Next.js 15, Drizzle ORM, PostgreSQL, and St
 - 🎨 Modern UI with Tailwind CSS
 - 📊 Activity logging
 - 🔄 Real-time updates with SWR
+- 🖼️ AI Image Editor with FLUX.1 Kontext Pro
 
 ## Getting Started
 
@@ -17,7 +18,8 @@ A modern SaaS starter kit built with Next.js 15, Drizzle ORM, PostgreSQL, and St
 
 - Node.js 18+ 
 - PostgreSQL database
-- Stripe account
+- Stripe account (optional)
+- Replicate API token (for AI Image Editor)
 
 ### Local Development
 
@@ -51,6 +53,36 @@ npm run db:seed
 npm run dev
 ```
 
+## AI Image Editor
+
+The SaaS starter includes an AI-powered image editor using FLUX.1 Kontext Pro, a state-of-the-art text-based image editing model.
+
+### Setup
+
+1. Get a Replicate API token from [replicate.com](https://replicate.com)
+2. Add to your `.env.local`:
+   ```
+   REPLICATE_API_TOKEN="r8_your_token_here"
+   ```
+
+### Usage
+
+- Navigate to `/dashboard/image-editor`
+- Upload an image (optional)
+- Enter a descriptive prompt
+- Adjust settings as needed
+- Download your edited image
+
+### Features
+
+- Text-based image editing
+- Multiple input/output formats
+- Adjustable safety controls
+- Real-time processing feedback
+- Example demonstrations
+
+See [docs/image-editor.md](docs/image-editor.md) for detailed documentation.
+
 ## Deploying to Vercel
 
 ### 1. Database Setup
@@ -81,6 +113,9 @@ Set these in your Vercel project settings:
 - `STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
 - `STRIPE_WEBHOOK_SECRET` - Your Stripe webhook secret
 
+**For AI Image Editor (optional):**
+- `REPLICATE_API_TOKEN` - Your Replicate API token
+
 ### 4. Database Migration
 
 After deployment, run the database migrations:
@@ -101,13 +136,20 @@ npm run db:migrate
 ```
 ├── app/                    # Next.js App Router
 │   ├── (dashboard)/       # Dashboard routes
+│   │   └── dashboard/
+│   │       └── image-editor/  # AI Image Editor
 │   ├── (login)/          # Authentication routes
 │   └── api/              # API routes
+│       └── image-edit/   # Image editing API
 ├── components/            # Reusable components
+│   ├── ui/               # UI components
+│   ├── image-editor.tsx  # Main image editor
+│   └── flux-example.tsx  # Example component
 ├── lib/                   # Utilities and configurations
 │   ├── auth/             # Authentication logic
 │   ├── db/               # Database setup and queries
-│   └── payments/         # Stripe integration
+│   ├── payments/         # Stripe integration
+│   └── replicate.ts      # Replicate API utilities
 └── middleware.ts         # Next.js middleware
 ```
 
@@ -127,6 +169,7 @@ npm run db:migrate
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Custom JWT implementation
 - **Payments**: Stripe
+- **AI**: FLUX.1 Kontext Pro via Replicate
 - **Styling**: Tailwind CSS
 - **State Management**: SWR
 - **Deployment**: Vercel
