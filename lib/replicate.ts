@@ -39,7 +39,36 @@ export async function runFluxKontext(input: FluxKontextInput): Promise<string> {
     return output;
   } catch (error) {
     console.error('Error running FLUX.1 Kontext Pro:', error);
-    throw new Error(`Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    
+    // Handle specific Replicate errors
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      
+      // Rate limiting / system overload
+      if (errorMessage.includes('too many tasks') || errorMessage.includes('processing too many')) {
+        throw new Error('The AI service is currently busy. Please try again in a few minutes.');
+      }
+      
+      // Authentication errors
+      if (errorMessage.includes('unauthorized') || errorMessage.includes('invalid token')) {
+        throw new Error('Authentication failed. Please check your API configuration.');
+      }
+      
+      // Model-specific errors
+      if (errorMessage.includes('prediction failed')) {
+        throw new Error('Image processing failed. Please try with a different image or prompt.');
+      }
+      
+      // Network/timeout errors
+      if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+        throw new Error('Request timed out. Please check your connection and try again.');
+      }
+      
+      // Generic error handling
+      throw new Error(`Failed to process image: ${error.message}`);
+    }
+    
+    throw new Error('An unexpected error occurred while processing your image.');
   }
 }
 

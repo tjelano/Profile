@@ -64,33 +64,62 @@ export function ImageEditor({ className }: ImageEditorProps) {
     setIsLoading(true);
     setError('');
 
-    try {
-      const response = await fetch('/api/image-edit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          input_image: inputImageUrl || undefined,
-          aspect_ratio: aspectRatio,
-          output_format: outputFormat,
-          safety_tolerance: safetyTolerance,
-        }),
-      });
+    // Retry logic for rate limiting
+    const maxRetries = 3;
+    let retryCount = 0;
 
-      const data: ImageEditResponse = await response.json();
+    while (retryCount < maxRetries) {
+      try {
+        const response = await fetch('/api/image-edit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: prompt.trim(),
+            input_image: inputImageUrl || undefined,
+            aspect_ratio: aspectRatio,
+            output_format: outputFormat,
+            safety_tolerance: safetyTolerance,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process image');
+        const data: ImageEditResponse = await response.json();
+
+        if (!response.ok) {
+          const errorMessage = data.error || 'Failed to process image';
+          
+          // Check if it's a rate limiting error
+          if (errorMessage.toLowerCase().includes('busy') || errorMessage.toLowerCase().includes('too many tasks')) {
+            if (retryCount < maxRetries - 1) {
+              retryCount++;
+              // Wait before retrying (exponential backoff)
+              const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s
+              setError(`Service is busy. Retrying in ${waitTime / 1000} seconds... (Attempt ${retryCount}/${maxRetries})`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              continue;
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        setOutputImageUrl(data.url);
+        return; // Success, exit the retry loop
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        
+        // If it's the last retry or not a rate limiting error, show the error
+        if (retryCount === maxRetries - 1 || !errorMessage.toLowerCase().includes('busy')) {
+          setError(errorMessage);
+          break;
+        }
+        
+        retryCount++;
       }
-
-      setOutputImageUrl(data.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
     }
+    
+    setIsLoading(false);
   };
 
   const handleDownload = () => {
@@ -127,6 +156,13 @@ export function ImageEditor({ className }: ImageEditorProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Rate Limiting Notice */}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> The AI service may be busy during peak hours. If you encounter delays, please wait a few minutes and try again.
+            </p>
+          </div>
+
           {/* Input Image Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
